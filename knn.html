@@ -1,0 +1,204 @@
+<html>
+<head>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.11/d3.min.js"></script>
+    <script src = "https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.js"></script>
+
+
+<style>
+#title {
+  margin-bottom: 0;
+  color: orange;
+  text-align: center
+}
+#chart {
+  background-color: white;
+}
+
+
+</style>
+</head>
+
+<body>
+   <h1 id="title">K-Nearest Neighbor</h1> <br><br>
+   
+<center><div id="chart"></div></center><br>
+
+
+<div class="ui-widget">
+
+  
+  <center><input type="value" id="kneighbors" placeholder="select k value...">
+   <button onclick="myFunction()" id="">Submit</button>
+  <button onclick="document.getElementById('kneighbors').value = ''">Clear </button><br></center>
+  
+
+</div>
+
+
+</div>
+
+
+<script>
+// function myFunction() {
+ // var x = document.getElementById("kneighbors").value;
+ // console.log(x)
+//}
+
+
+var range = 400;  //The size of the canvas
+var Datapoints = 60;  
+var labels = 2; 
+var k = 0; 
+var colors = d3.scale.category10();
+
+
+      
+function drawCircle(container, p, r, color) {
+  var circle = 
+   
+   container.append('rect')
+               .attr('x', 0)
+               .attr('y', 0)
+               .attr('height', 400)
+               .attr('width', 400)
+               .style("stroke", 'blue')
+               .style("fill", "none")
+               .style("stroke-width", 6);
+
+
+     container.append("circle")
+               .attr("cx", p.x)
+               .attr("cy", p.y)
+               .attr("r", r)
+               .attr("stroke", "black")
+               .attr("stroke-width", 2)
+               .attr("fill", color);
+  return circle;
+}
+
+
+function drawLine(container, p1, p2, color) {
+  var line = 
+           container.append("line")
+                    .attr("x1", p1.x)
+                    .attr("y1", p1.y)
+                    .attr("x2", p2.x)
+                    .attr("y2", p2.y)
+                    .style("stroke", color)
+                    .style("stroke-width", 10);
+  return line;
+}
+
+
+function generate_data(Datapoints, range, labels) {
+  var results = [];
+ //  console.log(results)
+  for (i =0; i < Datapoints; i++) {
+    var result = {};
+    result.x = Math.random() * range;
+    result.y = Math.random() * range;
+    result.label = Math.floor(Math.random() * labels);
+    results.push(result);
+  }
+  return results;
+  // console.log(results)
+}
+
+
+
+function get_distance(p1, p2) {
+  var d = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+  return d;
+}
+
+function get_knn(current, points, k) {
+  var dists = [];
+  points.map(function(item) {
+    var result = {};
+    result.p = item;
+    result.d = get_distance(current, item.data);
+    dists.push(result);
+  });
+// console.log(dists)
+
+  dists.sort(function(a, b) {
+    return a.d - b.d;
+  });
+
+  return dists.slice(0, k);
+}
+
+function get_vote(knn) {
+  var result = [];
+    length = labels;
+  for (i = 0; i < length; i++) {
+    result[i] = {};
+    result[i].label = i;
+    result[i].value = 0;
+  }
+
+  knn.map(function(item) {
+    result[item.p.data.label].value++;
+  });
+  
+  result.sort(function(a, b) {
+    return b.value - a.value;
+  });
+
+  return result[0].label;
+}
+
+
+var root = d3.select("#chart")
+               .append("svg")
+               .attr("width", range)
+               .attr("height", range)
+  
+var layer1 = root.append("g")
+                 .attr("id", "layer1");
+
+var data = generate_data(Datapoints, range, labels);
+var points = [];
+
+  data.map(function(item) {
+    var point = drawCircle(root, item, 5, colors(item.label));
+    var p = {};
+    p.data = item;
+    p.el = point;
+    points.push(p);
+  });
+
+  
+function myFunction() {
+var k = document.getElementById("kneighbors").value;
+root.on("mouseover", function(d) {
+    $("#layer1").empty();
+    var mouse_point = d3.mouse(root.node());
+    var current_point = {};
+    current_point.x = mouse_point[0];
+    current_point.y = mouse_point[1];
+    
+   
+    var knn = get_knn(current_point, points, k);
+    var d_max = knn[knn.length-1].d;
+    var vote = get_vote(knn);
+
+    knn.map(function(item) {
+      var line = drawLine(layer1, item.p.data, current_point, "black");
+    });
+    
+    var range_circle = drawCircle(layer1, current_point, d_max, 'None');
+                      range_circle.style("fill","white")
+                      .style("fill-opacity",0.8)
+                      .attr("stroke-width", 3);
+    
+    var predict_circle = drawCircle(layer1, current_point, 8, colors(vote)); 
+  });
+}
+
+
+</script>
+</body>
+</html>
